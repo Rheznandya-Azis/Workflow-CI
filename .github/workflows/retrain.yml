@@ -93,9 +93,8 @@ jobs:
       - name: Register Model to MLflow Registry
         if: success()
         run: |
-          mlflow models register \
-            --model-uri "runs:/${{ env.RUN_ID }}/outputs" \
-            --name "Model-Eligibility-Kredit"
+          # Menggunakan modul Python inline untuk memicu fungsi registrasi resmi MLflow API
+          python -c "import mlflow; mlflow.register_model('runs:/${{ env.RUN_ID }}/outputs', 'Model-Eligibility-Kredit')"
 
       - name: Display training outputs
         if: success()
