@@ -1,0 +1,88 @@
+name: Retrain Credit Eligibility Model
+
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "MLProject/modelling.py"
+      - "MLProject/MLproject"
+      - "MLProject/conda.yaml"
+      - "MLProject/requirements.txt"
+      - "MLProject/credit-eligibility_preprocessing.xlsx"
+      - ".github/workflows/retrain.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  retrain-model:
+    name: Train model with MLflow Project
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      MLFLOW_TRACKING_URI: sqlite:///${{ github.workspace }}/MLProject/mlflow.db
+      MLFLOW_EXPERIMENT_NAME: credit_eligibility_classification
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "MLProject/requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r MLProject/requirements.txt
+
+      - name: Validate Python syntax
+        run: |
+          python -m py_compile MLProject/modelling.py
+
+      - name: Validate required files
+        run: |
+          test -f MLProject/modelling.py
+          test -f MLProject/MLproject
+          test -f MLProject/conda.yaml
+          test -f MLProject/credit-eligibility_preprocessing.xlsx
+
+      - name: Run retraining through MLflow Project
+        run: |
+          mlflow run ./MLProject \
+            --entry-point main \
+            --env-manager local \
+            --experiment-name "${MLFLOW_EXPERIMENT_NAME}" \
+            --run-name "github-actions-${GITHUB_RUN_NUMBER}" \
+            -P data_path="${GITHUB_WORKSPACE}/MLProject/credit-eligibility_preprocessing.xlsx" \
+            -P test_size=0.20 \
+            -P output_dir="${GITHUB_WORKSPACE}/MLProject/outputs"
+
+      - name: Display training outputs
+        if: success()
+        run: |
+          echo "Generated files:"
+          find MLProject/outputs -maxdepth 2 -type f -print
+          echo ""
+          echo "Metrics:"
+          cat MLProject/outputs/metrics.json
+
+      - name: Upload model and MLflow results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: credit-eligibility-model-run-${{ github.run_number }}
+          path: |
+            MLProject/outputs/
+            MLProject/mlflow.db
+            MLProject/mlruns/
+            mlruns/
+          if-no-files-found: warn
+          retention-days: 30
