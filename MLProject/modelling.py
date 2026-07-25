@@ -55,7 +55,7 @@ TARGET_MAPPING = {"N": 0, "Y": 1}
 EXCLUDED_FEATURES = ["Loan_ID", "Loan_Amount_Term", TARGET_COLUMN]
 
 RANDOM_STATE = 42
-DEFAULT_TEST_SIZE = 0.20
+DEFAULT_TEST_SIZE = 0.2
 
 # Parameter model ditetapkan langsung. Tidak terdapat GridSearchCV,
 # RandomizedSearchCV, Optuna, atau metode hyperparameter tuning lainnya.
@@ -299,7 +299,6 @@ def train_and_track(
         mlflow.log_params(
             {
                 "target_column": TARGET_COLUMN,
-                "test_size": test_size,
                 "random_state": RANDOM_STATE,
                 "dataset_filename": resolved_data_path.name,
                 "dataset_sha256": calculate_sha256(resolved_data_path),
