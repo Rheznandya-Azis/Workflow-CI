@@ -84,6 +84,19 @@ jobs:
             -P output_dir="outputs" \
             2>&1 | tee MLProject/outputs/mlflow_run.log
 
+      - name: Get latest mlflow run_id
+        if: success()
+        run: |
+          run_id=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
+          echo "RUN_ID=$run_id" >> $github_env
+
+      - name: Register Model to MLflow Registry
+        if: success()
+        run: |
+          mlflow models register \
+            --model-uri "runs:/${{ env.RUN_ID }}/outputs" \
+            --name "Model-Eligibility-Kredit"
+
       - name: Display training outputs
         if: success()
         run: |
