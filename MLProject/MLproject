@@ -1,0 +1,21 @@
+name: credit-eligibility-mlflow-project
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    parameters:
+      data_path:
+        type: path
+        default: credit-eligibility_preprocessing.xlsx
+      test_size:
+        type: float
+        default: 0.20
+      output_dir:
+        type: string
+        default: outputs
+    command: >
+      python modelling.py
+      --data {data_path}
+      --test-size {test_size}
+      --output-dir {output_dir}
