@@ -1,0 +1,56 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# Environment variables dan secrets lokal
+.env
+.env.*
+!.env.example
+
+# MLflow pada struktur repository saat ini
+Workflow-CI/MLProject/mlflow.db
+Workflow-CI/MLProject/mlflow.db-shm
+Workflow-CI/MLProject/mlflow.db-wal
+Workflow-CI/MLProject/mlruns/
+Workflow-CI/MLProject/outputs/
+
+# Apabila MLflow menghasilkan file pada root repository
+mlflow.db
+mlflow.db-shm
+mlflow.db-wal
+mlruns/
+outputs/
+
+# Model yang diekspor di luar folder outputs
+*.joblib
+*.pkl
+*.pickle
+
+# Cache pengujian dan notebook
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+
+# Editor dan operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+~$*
