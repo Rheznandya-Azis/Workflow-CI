@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-
+      
           mlflow run ./MLProject \
             --entry-point main \
             --env-manager local \
@@ -83,20 +83,98 @@ jobs:
             -P test_size=0.2 \
             -P output_dir="outputs" \
             2>&1 | tee MLProject/outputs/mlflow_run.log
-
-      - name: Get latest MLflow run_id
+    
+      - name: Get MLflow run ID
+        shell: bash
         run: |
-          RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
-          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "Latest run_id: $RUN_ID"
-
+          python - <<'PY'
+          import os
+          import mlflow
+          from mlflow import MlflowClient
+      
+          mlflow.set_tracking_uri(
+              os.environ["MLFLOW_TRACKING_URI"]
+          )
+      
+          client = MlflowClient()
+      
+          experiment = client.get_experiment_by_name(
+              os.environ["MLFLOW_EXPERIMENT_NAME"]
+          )
+      
+          if experiment is None:
+              raise RuntimeError(
+                  "MLflow experiment tidak ditemukan."
+              )
+      
+          expected_name = (
+              f"github-actions-"
+              f"{os.environ['GITHUB_RUN_NUMBER']}"
+          )
+      
+          runs = client.search_runs(
+              experiment_ids=[experiment.experiment_id],
+              order_by=["attributes.start_time DESC"],
+              max_results=100,
+          )
+      
+          run = next(
+              (
+                  item
+                  for item in runs
+                  if item.data.tags.get("mlflow.runName")
+                  == expected_name
+              ),
+              None,
+          )
+      
+          if run is None:
+              raise RuntimeError(
+                  f"Run tidak ditemukan: {expected_name}"
+              )
+      
+          run_id = run.info.run_id
+      
+          with open(
+              os.environ["GITHUB_ENV"],
+              "a",
+              encoding="utf-8",
+          ) as file:
+              file.write(
+                  f"MLFLOW_RUN_ID={run_id}\n"
+              )
+      
+          print(f"MLflow run ID: {run_id}")
+          PY
+        
       - name: Register Model to MLflow Registry
         if: success()
-        env:
-          MLFLOW_RUN_ID: ${{ env.MLFLOW_RUN_ID }}
+        shell: bash
         run: |
-          python -c "import os, mlflow; mlflow.register_model(f'runs:/{os.environ[\"MLFLOW_RUN_ID\"]}/outputs', 'Model-Eligibility-Kredit')"
-
+          python - <<'PY'
+          import os
+          import mlflow
+      
+          mlflow.set_tracking_uri(
+              os.environ["MLFLOW_TRACKING_URI"]
+          )
+          mlflow.set_registry_uri(
+              os.environ["MLFLOW_REGISTRY_URI"]
+          )
+      
+          run_id = os.environ["MLFLOW_RUN_ID"].strip()
+      
+          if not run_id:
+              raise RuntimeError(
+                  "MLFLOW_RUN_ID kosong."
+              )
+      
+          model_uri = f"runs:/{run_id}/model"
+      
+          result = mlflow.register_model(
+              model_uri=model_uri,
+              name="Model-Eligibility-Kredit",
+          )
 
       - name: Display training outputs
         if: success()
