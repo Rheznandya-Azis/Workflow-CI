@@ -16,11 +16,11 @@ ENV/
 !.env.example
 
 # MLflow pada struktur repository saat ini
-Workflow-CI/MLProject/mlflow.db
-Workflow-CI/MLProject/mlflow.db-shm
-Workflow-CI/MLProject/mlflow.db-wal
-Workflow-CI/MLProject/mlruns/
-Workflow-CI/MLProject/outputs/
+MLProject/mlflow.db
+MLProject/mlflow.db-shm
+MLProject/mlflow.db-wal
+MLProject/mlruns/
+MLProject/outputs/
 
 # Apabila MLflow menghasilkan file pada root repository
 mlflow.db
