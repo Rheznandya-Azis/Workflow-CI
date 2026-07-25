@@ -103,13 +103,10 @@ jobs:
           )
       
           if experiment is None:
-              raise RuntimeError(
-                  "MLflow experiment tidak ditemukan."
-              )
+              raise RuntimeError("Experiment tidak ditemukan.")
       
-          expected_name = (
-              f"github-actions-"
-              f"{os.environ['GITHUB_RUN_NUMBER']}"
+          expected_run_name = (
+              f"github-actions-{os.environ['GITHUB_RUN_NUMBER']}"
           )
       
           runs = client.search_runs(
@@ -118,63 +115,73 @@ jobs:
               max_results=100,
           )
       
-          run = next(
+          matching_run = next(
               (
-                  item
-                  for item in runs
-                  if item.data.tags.get("mlflow.runName")
-                  == expected_name
+                  run for run in runs
+                  if run.data.tags.get("mlflow.runName")
+                  == expected_run_name
               ),
               None,
           )
       
-          if run is None:
+          if matching_run is None:
               raise RuntimeError(
-                  f"Run tidak ditemukan: {expected_name}"
+                  f"Run tidak ditemukan: {expected_run_name}"
               )
       
-          run_id = run.info.run_id
+          run_id = matching_run.info.run_id
       
           with open(
               os.environ["GITHUB_ENV"],
               "a",
               encoding="utf-8",
           ) as file:
-              file.write(
-                  f"MLFLOW_RUN_ID={run_id}\n"
-              )
+              file.write(f"MLFLOW_RUN_ID={run_id}\n")
       
           print(f"MLflow run ID: {run_id}")
           PY
-        
+
+      - name: Verify environment variables
+        shell: bash
+        run: |
+          if [ -z "${MLFLOW_RUN_ID:-}" ]; then
+            echo "MLFLOW_RUN_ID tidak tersedia."
+            exit 1
+          fi
+      
+          if [ -z "${MLFLOW_TRACKING_URI:-}" ]; then
+            echo "MLFLOW_TRACKING_URI tidak tersedia."
+            exit 1
+          fi
+      
+          echo "MLFLOW_RUN_ID=$MLFLOW_RUN_ID"
+          echo "MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI"
+              
       - name: Register Model to MLflow Registry
         if: success()
         shell: bash
         run: |
-          python - <<'PY'
+          python -c "
           import os
           import mlflow
       
+          run_id = os.environ['MLFLOW_RUN_ID'].strip()
           mlflow.set_tracking_uri(
-              os.environ["MLFLOW_TRACKING_URI"]
-          )
-          mlflow.set_registry_uri(
-              os.environ["MLFLOW_REGISTRY_URI"]
+              os.environ['MLFLOW_TRACKING_URI']
           )
       
-          run_id = os.environ["MLFLOW_RUN_ID"].strip()
-      
-          if not run_id:
-              raise RuntimeError(
-                  "MLFLOW_RUN_ID kosong."
-              )
-      
-          model_uri = f"runs:/{run_id}/model"
+          model_uri = f'runs:/{run_id}/model'
       
           result = mlflow.register_model(
               model_uri=model_uri,
-              name="Model-Eligibility-Kredit",
+              name='Model-Eligibility-Kredit',
           )
+      
+          print(f'Model name: {result.name}')
+          print(f'Version: {result.version}')
+          print(f'Run ID: {result.run_id}')
+          print(f'Model URI: {model_uri}')
+          "
 
       - name: Display training outputs
         if: success()
