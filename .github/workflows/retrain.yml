@@ -80,7 +80,7 @@ jobs:
             --experiment-name "${MLFLOW_EXPERIMENT_NAME}" \
             --run-name "github-actions-${GITHUB_RUN_NUMBER}" \
             -P data_path="${GITHUB_WORKSPACE}/MLProject/credit-eligibility_preprocessing.xlsx" \
-            -P test_size=0.20 \
+            -P test_size=0.2 \
             -P output_dir="outputs" \
             2>&1 | tee MLProject/outputs/mlflow_run.log
 
