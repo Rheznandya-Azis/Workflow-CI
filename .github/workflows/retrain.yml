@@ -84,16 +84,16 @@ jobs:
             -P output_dir="outputs" \
             2>&1 | tee MLProject/outputs/mlflow_run.log
 
-      - name: Get latest mlflow run_id
-        if: success()
+      - name: Get latest MLflow run_id
         run: |
-          run_id=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
-          echo "RUN_ID=$run_id" >> $GITHUB_ENV
+          RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Latest run_id: $RUN_ID"
 
       - name: Register Model to MLflow Registry
         if: success()
         env:
-          MLFLOW_RUN_ID: ${{ env.RUN_ID }}
+          MLFLOW_RUN_ID: ${{ env.MLFLOW_RUN_ID }}
         run: |
           python -c "import os, mlflow; mlflow.register_model(f'runs:/{os.environ[\"MLFLOW_RUN_ID\"]}/outputs', 'Model-Eligibility-Kredit')"
 
