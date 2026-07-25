@@ -1,7 +1,8 @@
 name: Retrain Credit Eligibility Model
 
-"on":
+on:
   workflow_dispatch:
+
   push:
     branches:
       - main
@@ -25,6 +26,7 @@ jobs:
     env:
       MLFLOW_TRACKING_URI: sqlite:///${{ github.workspace }}/MLProject/mlflow.db
       MLFLOW_EXPERIMENT_NAME: credit_eligibility_classification
+      MLFLOW_LOGGING_LEVEL: DEBUG
       PYTHONUNBUFFERED: "1"
 
     steps:
@@ -43,6 +45,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r MLProject/requirements.txt
 
+      - name: Show installed versions
+        run: |
+          python --version
+          mlflow --version
+          python -c "import sklearn, pandas, mlflow; print('scikit-learn:', sklearn.__version__); print('pandas:', pandas.__version__); print('mlflow:', mlflow.__version__)"
+
       - name: Validate Python syntax
         run: |
           python -m py_compile MLProject/modelling.py
@@ -52,24 +60,36 @@ jobs:
           test -f MLProject/modelling.py
           test -f MLProject/MLproject
           test -f MLProject/conda.yaml
+          test -f MLProject/requirements.txt
           test -f MLProject/credit-eligibility_preprocessing.xlsx
 
-      - name: Run retraining through MLflow Project
+      - name: Prepare output directories
         run: |
+          mkdir -p MLProject/outputs
+          mkdir -p "${RUNNER_TEMP}/mlflow-project-storage"
+
+      - name: Run retraining through MLflow Project
+        shell: bash
+        run: |
+          set -o pipefail
+
           mlflow run ./MLProject \
             --entry-point main \
             --env-manager local \
+            --storage-dir "${RUNNER_TEMP}/mlflow-project-storage" \
             --experiment-name "${MLFLOW_EXPERIMENT_NAME}" \
             --run-name "github-actions-${GITHUB_RUN_NUMBER}" \
             -P data_path="${GITHUB_WORKSPACE}/MLProject/credit-eligibility_preprocessing.xlsx" \
             -P test_size=0.20 \
-            -P output_dir="${GITHUB_WORKSPACE}/MLProject/outputs"
+            -P output_dir="outputs" \
+            2>&1 | tee MLProject/outputs/mlflow_run.log
 
       - name: Display training outputs
         if: success()
         run: |
           echo "Generated files:"
           find MLProject/outputs -maxdepth 2 -type f -print
+
           echo ""
           echo "Metrics:"
           cat MLProject/outputs/metrics.json
