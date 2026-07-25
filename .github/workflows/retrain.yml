@@ -87,7 +87,7 @@ jobs:
       - name: Get latest mlflow run_id
         if: success()
         run: |
-          run_id=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f4)
+          run_id=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
           echo "RUN_ID=$run_id" >> $GITHUB_ENV
 
       - name: Register Model to MLflow Registry
